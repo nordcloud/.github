@@ -1,0 +1,5 @@
+{
+    "name": "Jira - PR mentioner",
+    "description": "Mention reviewers in Jira after creating pull request",
+    "iconName": "Octicons-git-pull-request"
+}

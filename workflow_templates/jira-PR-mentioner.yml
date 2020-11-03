@@ -1,0 +1,48 @@
+name: Jira - PR mentioner
+
+on: 
+  pull_request:
+    types: [opened, edited, reopened, synchronize, closed]
+  pull_request_review:
+
+jobs:
+  check_title:
+    runs-on: [self-hosted, Linux, X64]
+    name: Check title
+    steps:
+    - name: Validate title
+      id: validate
+      uses: nordcloud/gh-title-rules@master
+      with:
+        regex: '\[((MCT|RR)\-[0-9]+)\](?!\s*$).+'
+    - name: Publish comment
+      uses: nordcloud/gh-publish-comment@master
+      with:
+        task_number: ${{ steps.validate.outputs.task_number }}
+        url_prefix: 'https://nordcloud.atlassian.net/browse/'
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      task_id: ${{ steps.validate.outputs.task_number }}
+  comment_on_jira_task:
+    needs: check_title
+    runs-on: [self-hosted, Linux, X64]
+    name: Comment on Jira task
+    steps:
+    - name: Get PR id
+      run:   echo ::set-env name=PULL_NUMBER::$(echo "$GITHUB_REF" | awk -F / '{print $3}')
+      shell: bash
+    - name: Checkout private tools
+      uses: actions/checkout@v2
+      with:
+        repository: nordcloud/mct-tc-automation
+        ssh-key: ${{ secrets.MCT_TC_AUTOMATION_SSH }} 
+        path: scripts
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: pip3 install -r scripts/comment_pr_on_jira_task/requirements.txt
+    - name: Execute py script
+      run: python scripts/comment_pr_on_jira_task/comment_pr_on_jira_task.py ${{ secrets.JIRA_USER_EMAIL }} ${{ secrets.JIRA_API_TOKEN }} ${{ needs.check_title.outputs.task_id }} ${{ github.repository }} ${{ env.PULL_NUMBER }} ${{ secrets.GITHUB_TOKEN }}
+  
