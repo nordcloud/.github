@@ -1,0 +1,5 @@
+{
+    "name": "License Header check",
+    "description": "Check and add missing license headers to the modified files.",
+    "iconName": "license-header-check-icon"
+}

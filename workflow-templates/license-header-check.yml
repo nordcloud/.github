@@ -1,0 +1,39 @@
+# Copyright 2021 Nordcloud Oy or its affiliates. All Rights Reserved.
+
+name: License Header check
+on:
+  pull_request:
+    branches: [ $default-branch ]
+
+jobs:
+  licenses:
+    name: Check licenses
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Download license checker and template
+        run: |
+          curl -s https://api.github.com/repos/nordcloud/addlicense/releases/latest \
+            | grep browser_download_url \
+            | grep linux \
+            | cut -d '"' -f 4 \
+            | wget -qi -
+          chmod 755 addlicense-linux
+          curl -s https://api.github.com/repos/nordcloud/addlicense/releases/latest \
+            | grep browser_download_url \
+            | grep tmpl \
+            | cut -d '"' -f 4 \
+            | wget -qi -
+      - id: changed-files
+        uses: jitterbit/get-changed-files@v1
+      - name: Try to update licenses in changed files
+        run: |
+          ./addlicense-linux -c "Nordcloud Oy" -f LICENSE.tmpl -u  ${{ steps.changed-files.outputs.all }}
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v7.0.0
+        with:
+          author_name: github-actions
+          author_email: 41898282+github-actions[bot]@users.noreply.github.com
+          message: "Update license headers"
+          add: '${{ steps.changed-files.outputs.all }}' 
